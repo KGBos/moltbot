@@ -1,8 +1,8 @@
 ---
-description: Update Clawdbot from upstream when branch has diverged (ahead/behind)
+description: Update OpenClaw from upstream when branch has diverged (ahead/behind)
 ---
 
-# Clawdbot Upstream Sync Workflow
+# OpenClaw Upstream Sync Workflow
 
 Use this workflow when your fork has diverged from upstream (e.g., "18 commits ahead, 29 commits behind").
 
