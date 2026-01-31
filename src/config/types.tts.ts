@@ -1,4 +1,4 @@
-export type TtsProvider = "elevenlabs" | "openai" | "edge";
+export type TtsProvider = "elevenlabs" | "openai" | "edge" | "chatterbox";
 
 export type TtsMode = "final" | "all";
 
@@ -72,6 +72,11 @@ export type TtsConfig = {
     saveSubtitles?: boolean;
     proxy?: string;
     timeoutMs?: number;
+  };
+  /** Local Chatterbox (Python bridge) configuration. */
+  chatterbox?: {
+    url?: string;
+    defaultVoicePath?: string;
   };
   /** Optional path for local TTS user preferences JSON. */
   prefsPath?: string;

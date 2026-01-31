@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { chatterboxTts } from "./chatterbox.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { ChannelId } from "../channels/plugins/types.js";
 import type { OpenClawConfig } from "../config/config.js";
@@ -120,7 +121,12 @@ export type ResolvedTtsConfig = {
     volume?: string;
     saveSubtitles: boolean;
     proxy?: string;
+
     timeoutMs?: number;
+  };
+  chatterbox: {
+    url?: string;
+    defaultVoicePath?: string;
   };
   prefsPath?: string;
   maxTextLength: number;
@@ -146,6 +152,12 @@ type ResolvedTtsModelOverrides = {
   allowVoiceSettings: boolean;
   allowNormalization: boolean;
   allowSeed: boolean;
+};
+
+export type TtsRequest = {
+  text: string;
+  cfg: OpenClawConfig;
+  channel?: string;
 };
 
 type TtsDirectiveOverrides = {
@@ -296,6 +308,10 @@ export function resolveTtsConfig(cfg: OpenClawConfig): ResolvedTtsConfig {
       proxy: raw.edge?.proxy?.trim() || undefined,
       timeoutMs: raw.edge?.timeoutMs,
     },
+    chatterbox: {
+      url: raw.chatterbox?.url,
+      defaultVoicePath: raw.chatterbox?.defaultVoicePath,
+    },
     prefsPath: raw.prefsPath,
     maxTextLength: raw.maxTextLength ?? DEFAULT_MAX_TEXT_LENGTH,
     timeoutMs: raw.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -434,6 +450,9 @@ export function getTtsProvider(config: ResolvedTtsConfig, prefsPath: string): Tt
   if (resolveTtsApiKey(config, "elevenlabs")) {
     return "elevenlabs";
   }
+  if (config.provider === "chatterbox") {
+    return "chatterbox";
+  }
   return "edge";
 }
 
@@ -501,7 +520,7 @@ export function resolveTtsApiKey(
   return undefined;
 }
 
-export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge"] as const;
+export const TTS_PROVIDERS = ["openai", "elevenlabs", "edge", "chatterbox"] as const;
 
 export function resolveTtsProviderOrder(primary: TtsProvider): TtsProvider[] {
   return [primary, ...TTS_PROVIDERS.filter((provider) => provider !== primary)];
@@ -1185,6 +1204,7 @@ export async function textToSpeech(params: {
   let lastError: string | undefined;
 
   for (const provider of providers) {
+    console.log(`[TTS] Trying provider: ${provider}`);
     const providerStart = Date.now();
     try {
       if (provider === "edge") {
@@ -1252,6 +1272,25 @@ export async function textToSpeech(params: {
           provider,
           outputFormat: edgeResult.outputFormat,
           voiceCompatible,
+        };
+      }
+
+      if (provider === "chatterbox") {
+        const result = await chatterboxTts(
+          { text: params.text, cfg: params.cfg, channel: params.channel },
+          config,
+        );
+        if (!result.success || !result.audioPath) {
+          lastError = result.error ?? "Chatterbox failed";
+          continue;
+        }
+        return {
+          success: true,
+          audioPath: result.audioPath,
+          latencyMs: Date.now() - providerStart,
+          provider,
+          // Chatterbox provider currently returns WAV (not voice note compatible without conversion usually)
+          voiceCompatible: result.voiceCompatible,
         };
       }
 
@@ -1457,9 +1496,9 @@ export async function maybeApplyTtsToPayload(params: {
     visibleText === text.trim()
       ? params.payload
       : {
-          ...params.payload,
-          text: visibleText.length > 0 ? visibleText : undefined,
-        };
+        ...params.payload,
+        text: visibleText.length > 0 ? visibleText : undefined,
+      };
 
   if (autoMode === "tagged" && !directives.hasDirective) {
     return nextPayload;
@@ -1482,9 +1521,9 @@ export async function maybeApplyTtsToPayload(params: {
   if (text.includes("MEDIA:")) {
     return nextPayload;
   }
-  if (ttsText.trim().length < 10) {
-    return nextPayload;
-  }
+  // if (ttsText.trim().length < 10) {
+  //   return nextPayload;
+  // }
 
   const maxLength = getTtsMaxLength(prefsPath);
   let textForAudio = ttsText.trim();
