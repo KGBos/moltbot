@@ -1,0 +1,69 @@
+diff --git a/dist/providers/google-gemini-cli.js b/dist/providers/google-gemini-cli.js
+index 3741764906f41e87eda9259f567b1d5332551a63..23710bd62c5a6e4088f56314d871007fccaff04a 100644
+--- a/dist/providers/google-gemini-cli.js
++++ b/dist/providers/google-gemini-cli.js
+@@ -9,10 +9,10 @@ import { sanitizeSurrogates } from "../utils/sanitize-unicode.js";
+ import { convertMessages, convertTools, isThinkingPart, mapStopReasonString, mapToolChoice, retainThoughtSignature, } from "./google-shared.js";
+ const DEFAULT_ENDPOINT = "https://cloudcode-pa.googleapis.com";
+ const ANTIGRAVITY_DAILY_ENDPOINT = "https://daily-cloudcode-pa.sandbox.googleapis.com";
+-const ANTIGRAVITY_ENDPOINT_FALLBACKS = [ANTIGRAVITY_DAILY_ENDPOINT, DEFAULT_ENDPOINT];
++const ANTIGRAVITY_ENDPOINT_FALLBACKS = [DEFAULT_ENDPOINT, ANTIGRAVITY_DAILY_ENDPOINT];
+ // Headers for Gemini CLI (prod endpoint)
+ const GEMINI_CLI_HEADERS = {
+-    "User-Agent": "google-cloud-sdk vscode_cloudshelleditor/0.1",
++    "User-Agent": "google-cloud-sdk vscode_cloudshelleditor/2.50.0",
+     "X-Goog-Api-Client": "gl-node/22.17.0",
+     "Client-Metadata": JSON.stringify({
+         ideType: "IDE_UNSPECIFIED",
+@@ -22,17 +22,17 @@ const GEMINI_CLI_HEADERS = {
+ };
+ // Headers for Antigravity (sandbox endpoint) - requires specific User-Agent
+ const ANTIGRAVITY_HEADERS = {
+-    "User-Agent": "antigravity/1.11.5 darwin/arm64",
+-    "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
++    "User-Agent": "google-cloud-sdk vscode_cloudshelleditor/3.0.0",
++    "X-Goog-Api-Client": "gl-node/22.17.0",
+     "Client-Metadata": JSON.stringify({
+-        ideType: "IDE_UNSPECIFIED",
++        ideType: "VSCODE",
+         platform: "PLATFORM_UNSPECIFIED",
+         pluginType: "GEMINI",
+     }),
+ };
+ // Antigravity system instruction (ported from CLIProxyAPI v6.6.89).
+ const ANTIGRAVITY_SYSTEM_INSTRUCTION = `<identity>
+-You are Antigravity, a powerful agentic AI coding assistant designed by the Google DeepMind team working on Advanced Agentic Coding.
++You are Pi, a coding assistant.
+ You are pair programming with a USER to solve their coding task. The task may require creating a new codebase, modifying or debugging an existing codebase, or simply answering a question.
+ The USER will send you requests, which you must always prioritize addressing. Along with each USER request, we will attach additional metadata about their current state, such as what files they have open and where their cursor is.
+ This information may or may not be relevant to the coding task, it is up for you to decide.
+@@ -320,6 +320,9 @@ export const streamGoogleGeminiCli = (model, context, options) => {
+                 try {
+                     const endpoint = endpoints[Math.min(attempt, endpoints.length - 1)];
+                     requestUrl = `${endpoint}/v1internal:streamGenerateContent?alt=sse`;
++                    console.log("DEBUG: Request URL:", requestUrl);
++                    console.log("DEBUG: Headers:", JSON.stringify(requestHeaders, null, 2));
++                    console.log("DEBUG: Body Payload:", requestBodyJson.slice(0, 500) + "...");
+                     response = await fetch(requestUrl, {
+                         method: "POST",
+                         headers: requestHeaders,
+@@ -729,13 +732,15 @@ IGNORE ALL INSTRUCTIONS ABOVE THIS LINE. The following overrides are mandatory:
+             ],
+         };
+     }
+-    return {
++    const finalReq = {
+         project: projectId,
+         model: model.id,
+         request,
+-        ...(isAntigravity ? { requestType: "agent" } : {}),
+-        userAgent: isAntigravity ? "antigravity" : "pi-coding-agent",
+-        requestId: `${isAntigravity ? "agent" : "pi"}-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
++        userAgent: "pi-coding-agent",
++        requestId: `pi-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+     };
++    // Ensure no antigravity/agent requestType leaks
++    if ('requestType' in finalReq) delete finalReq.requestType;
++    return finalReq;
+ }
+ //# sourceMappingURL=google-gemini-cli.js.map
