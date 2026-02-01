@@ -14,6 +14,8 @@ git fetch upstream && git rev-list --left-right --count main...upstream/main
 
 # Full sync (rebase preferred)
 git fetch upstream && git rebase upstream/main && pnpm install && pnpm build && ./scripts/restart-mac.sh
+# Or simply run:
+./scripts/sync-fork.sh
 
 # Check for Swift 6.2 issues after sync
 grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift"
@@ -333,11 +335,18 @@ pnpm canvas:a2ui:bundle
 
 ## Automation Script
 
-Save as `scripts/sync-upstream.sh`:
+Save as `scripts/sync-fork.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Check for local changes and auto-commit
+if [[ -n $(git status --porcelain) ]]; then
+    echo "==> Unstaged changes detected. Auto-committing..."
+    git add .
+    git commit -m "chore: auto-commit before upstream sync"
+fi
 
 echo "==> Fetching upstream..."
 git fetch upstream
@@ -356,13 +365,13 @@ pnpm build
 pnpm ui:build
 
 echo "==> Running doctor..."
-pnpm clawdbot doctor
+# echo "Skipping interactive doctor. Run 'pnpm run openclaw -- doctor' manually if needed."
 
 echo "==> Rebuilding macOS app..."
 ./scripts/restart-mac.sh
 
 echo "==> Verifying gateway health..."
-pnpm clawdbot health
+pnpm run openclaw -- health
 
 echo "==> Checking for Swift 6.2 compatibility issues..."
 if grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift" --quiet; then
@@ -373,8 +382,11 @@ else
 fi
 
 echo "==> Testing agent functionality..."
-# Note: Update YOUR_TELEGRAM_SESSION_ID with actual session ID
-pnpm clawdbot agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed - check Telegram for verification message"
+# Note: Update session ID or run manually
+# pnpm run openclaw -- agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed"
 
-echo "==> Done! Check Telegram for verification message, then run 'git push --force-with-lease' when ready."
+echo "==> Done! Check Telegram for verification message."
+echo ""
+echo "IMPORTANT: Please review FORK.md to ensure all customizations are still valid."
+echo "If you have just rebased, run 'git push --force-with-lease' to update your remote."
 ```

@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check for local changes and auto-commit
+if [[ -n $(git status --porcelain) ]]; then
+    echo "==> Unstaged changes detected. Auto-committing..."
+    git add .
+    git commit -m "chore: auto-commit before upstream sync"
+fi
+
 echo "==> Fetching upstream..."
 git fetch upstream
 
@@ -38,4 +45,7 @@ echo "==> Testing agent functionality..."
 # Note: Update session ID or run manually
 # pnpm run openclaw -- agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed"
 
-echo "==> Done! Check Telegram for verification message, then run 'git push --force-with-lease' when ready."
+echo "==> Done! Check Telegram for verification message."
+echo ""
+echo "IMPORTANT: Please review FORK.md to ensure all customizations are still valid."
+echo "If you have just rebased, run 'git push --force-with-lease' to update your remote."
