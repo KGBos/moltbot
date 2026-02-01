@@ -1,19 +1,24 @@
 ---
-description: Check OpenClaw System Health
+description: Check & Fix OpenClaw System Health
 ---
 
-This workflow runs a series of commands to check the health and status of the OpenClaw system, including presence, heartbeat, channel connectivity, and a comprehensive doctor check with deep scanning.
+# System Health Check
+
+This workflow runs a comprehensive suite of tools to diagnose and fix OpenClaw system health.
 
 // turbo-all
 
-1. OpenClaw Doctor Check (Deep)
-   `node openclaw.mjs doctor --deep --non-interactive`
+1. OpenClaw Doctor (Deep Scan & Auto-Fix)
+   `node openclaw.mjs doctor --deep --fix --non-interactive`
 
-2. Check system presence
-   `node openclaw.mjs system presence`
+2. Security Audit
+   `node openclaw.mjs security audit`
 
-3. Check last heartbeat
-   `node openclaw.mjs system heartbeat last`
+3. System Status (Deep Probe)
+   `node openclaw.mjs status --deep`
 
-4. Check channels status (Deep Probe)
-   `node openclaw.mjs channels status --probe`
+4. Validate Configuration
+   `node openclaw.mjs --version`
+
+5. Check Memory Index
+   `node openclaw.mjs memory status`

@@ -115,7 +115,7 @@ pnpm build
 pnpm ui:build
 
 # Run diagnostics
-pnpm clawdbot doctor
+pnpm run openclaw doctor
 ```
 
 ---
@@ -154,13 +154,13 @@ After rebuilding the macOS app, always verify it works correctly:
 
 ```bash
 # Check gateway health
-pnpm clawdbot health
+pnpm run openclaw health
 
 # Verify no zombie processes
 ps aux | grep -E "(clawdbot|gateway)" | grep -v grep
 
 # Test agent functionality by sending a verification message
-pnpm clawdbot agent --message "Verification: macOS app rebuild successful - agent is responding." --session-id YOUR_TELEGRAM_SESSION_ID
+pnpm run openclaw agent --message "Verification: macOS app rebuild successful - agent is responding." --session-id YOUR_TELEGRAM_SESSION_ID
 
 # Confirm the message was received on Telegram
 # (Check your Telegram chat with the bot)
@@ -247,7 +247,7 @@ grep -r "openrouter\|OPENROUTER" src/ --include="*.ts" --include="*.js"
 
 ```bash
 # Verify everything works
-pnpm clawdbot health
+pnpm run openclaw health
 pnpm test
 
 # Push (force required after rebase)
