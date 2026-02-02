@@ -20,39 +20,91 @@ OLD_HEAD=$(git rev-parse HEAD)
 echo "==> Rebasing onto upstream/main..."
 git rebase upstream/main
 
-echo "==> Installing dependencies..."
-pnpm install
-
-echo "==> Building..."
-pnpm build
-pnpm ui:build
-
-echo "==> Running doctor..."
-# echo "Skipping interactive doctor. Run 'pnpm run openclaw -- doctor' manually if needed."
-
-echo "==> Rebuilding macOS app..."
-./scripts/restart-mac.sh
-
-echo "==> Verifying gateway health..."
-pnpm run openclaw -- health
-
-echo "==> Checking for Swift 6.2 compatibility issues..."
-if grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift" --quiet; then
-    echo "⚠️  Found potential Swift 6.2 deprecated API usage"
-    echo "   Run manual fixes or use analyze-mode investigation"
-else
-    echo "✅ No obvious Swift deprecation issues found"
-fi
-
-echo "==> Testing agent functionality..."
-# Note: Update session ID or run manually
-# pnpm run openclaw -- agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed"
-
+# Push immediately after rebase so remote stays in sync even if builds fail later
 echo "==> Syncing with origin (Force Push)..."
 git push origin main --force-with-lease
 echo "✅ Origin synced."
 
-echo "==> Done! Check Telegram for verification message."
+# Check if anything actually changed
+NEW_HEAD=$(git rev-parse HEAD)
+if [ "$OLD_HEAD" == "$NEW_HEAD" ]; then
+    echo "✅ Already up to date, no changes to build."
+    echo "==> Done!"
+    exit 0
+fi
+
+# Get list of changed files for conditional builds
+CHANGED_FILES=$(git diff --name-only "$OLD_HEAD" HEAD)
+
+# Check what needs rebuilding
+NEEDS_DEPS=false
+NEEDS_TS_BUILD=false
+NEEDS_UI_BUILD=false
+NEEDS_MAC_BUILD=false
+
+if echo "$CHANGED_FILES" | grep -qE "^(package\.json|pnpm-lock\.yaml)$"; then
+    NEEDS_DEPS=true
+fi
+
+if echo "$CHANGED_FILES" | grep -qE "^(src/|packages/|tsconfig)"; then
+    NEEDS_TS_BUILD=true
+fi
+
+if echo "$CHANGED_FILES" | grep -qE "^ui/"; then
+    NEEDS_UI_BUILD=true
+fi
+
+if echo "$CHANGED_FILES" | grep -qE "^apps/macos/"; then
+    NEEDS_MAC_BUILD=true
+fi
+
+echo "==> Changes detected:"
+echo "    Dependencies: $NEEDS_DEPS"
+echo "    TypeScript:   $NEEDS_TS_BUILD"
+echo "    UI:           $NEEDS_UI_BUILD"
+echo "    macOS app:    $NEEDS_MAC_BUILD"
+
+# Conditional builds
+if [ "$NEEDS_DEPS" = true ]; then
+    echo "==> Installing dependencies..."
+    pnpm install
+else
+    echo "==> Skipping dependencies (no package changes)"
+fi
+
+if [ "$NEEDS_TS_BUILD" = true ]; then
+    echo "==> Building TypeScript..."
+    pnpm build
+else
+    echo "==> Skipping TypeScript build (no src changes)"
+fi
+
+if [ "$NEEDS_UI_BUILD" = true ]; then
+    echo "==> Building UI..."
+    pnpm ui:build
+else
+    echo "==> Skipping UI build (no ui changes)"
+fi
+
+if [ "$NEEDS_MAC_BUILD" = true ]; then
+    echo "==> Rebuilding macOS app..."
+    ./scripts/restart-mac.sh
+    
+    echo "==> Checking for Swift 6.2 compatibility issues..."
+    if grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift" --quiet; then
+        echo "⚠️  Found potential Swift 6.2 deprecated API usage"
+        echo "   Run manual fixes or use analyze-mode investigation"
+    else
+        echo "✅ No obvious Swift deprecation issues found"
+    fi
+else
+    echo "==> Skipping macOS app rebuild (no apps/macos changes)"
+fi
+
+echo "==> Verifying gateway health..."
+pnpm run openclaw -- health
+
+echo "==> Done!"
 echo ""
 echo "=== 📝 Changelog vs Previous Version ==="
 if [ "$OLD_HEAD" == "$(git rev-parse HEAD)" ]; then
