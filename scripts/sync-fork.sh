@@ -14,6 +14,9 @@ git fetch upstream
 echo "==> Current divergence:"
 git rev-list --left-right --count main...upstream/main
 
+# Capture current HEAD before rebase for changelog generation
+OLD_HEAD=$(git rev-parse HEAD)
+
 echo "==> Rebasing onto upstream/main..."
 git rebase upstream/main
 
@@ -45,7 +48,19 @@ echo "==> Testing agent functionality..."
 # Note: Update session ID or run manually
 # pnpm run openclaw -- agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed"
 
+echo "==> Syncing with origin (Force Push)..."
+git push origin main --force-with-lease
+echo "✅ Origin synced."
+
 echo "==> Done! Check Telegram for verification message."
 echo ""
-echo "IMPORTANT: Please review FORK.md to ensure all customizations are still valid."
-echo "If you have just rebased, run 'git push --force-with-lease' to update your remote."
+echo "=== 📝 Changelog vs Previous Version ==="
+if [ "$OLD_HEAD" == "$(git rev-parse HEAD)" ]; then
+    echo "No changes applied."
+else
+    # Show concise one-line log of what's new
+    git log --no-merges --format="%C(yellow)%h%Creset %s %C(dim white)(%an)%Creset" "$OLD_HEAD..HEAD"
+    echo ""
+    echo "Total new commits: $(git rev-list --count "$OLD_HEAD..HEAD")"
+fi
+echo "========================================="
