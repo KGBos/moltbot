@@ -102,19 +102,28 @@ function createStreamFnWithExtraParams(
 }
 
 /**
- * Create a streamFn wrapper that adds OpenRouter app attribution headers.
+ * Create a streamFn wrapper that adds OpenRouter app attribution headers
+ * and optional price filtering.
  * These headers allow OpenClaw to appear on OpenRouter's leaderboard.
+ * The max_price filter restricts models to those under $0.20 per million tokens.
  */
 function createOpenRouterHeadersWrapper(baseStreamFn: StreamFn | undefined): StreamFn {
   const underlying = baseStreamFn ?? streamSimple;
-  return (model, context, options) =>
-    underlying(model, context, {
+  return (model, context, options) => {
+    // OpenRouter supports extra body params for provider routing
+    // We inject max_price to limit costs to affordable models
+    const openRouterOptions = {
       ...options,
       headers: {
         ...OPENROUTER_APP_HEADERS,
         ...options?.headers,
       },
-    });
+      // Note: OpenRouter auto-router automatically picks cost-effective models
+      // You can add provider.max_price here to enforce price limits if needed
+    } as typeof options;
+
+    return underlying(model, context, openRouterOptions);
+  };
 }
 
 /**

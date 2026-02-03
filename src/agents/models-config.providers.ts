@@ -398,6 +398,33 @@ async function buildOllamaProvider(): Promise<ProviderConfig> {
   };
 }
 
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+
+// OpenRouter auto-router: automatically selects the best model for each prompt.
+// Use provider.max_price filter at request time to restrict to free models.
+const OPENROUTER_AUTO_MODEL: ModelDefinitionConfig = {
+  id: "openrouter/auto",
+  name: "OpenRouter Auto (Best Model Selection)",
+  reasoning: false,
+  input: ["text", "image"], // Auto-router can route to vision models too
+  cost: {
+    input: 0, // Free when using max_price filter
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  contextWindow: 128000, // Conservative estimate; actual varies by selected model
+  maxTokens: 16384,
+};
+
+function buildOpenRouterProvider(): ProviderConfig {
+  return {
+    baseUrl: OPENROUTER_BASE_URL,
+    api: "openai-completions",
+    models: [OPENROUTER_AUTO_MODEL],
+  };
+}
+
 export async function resolveImplicitProviders(params: {
   agentDir: string;
 }): Promise<ModelsConfig["providers"]> {
@@ -405,6 +432,17 @@ export async function resolveImplicitProviders(params: {
   const authStore = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
   });
+
+  const openRouterKey =
+    resolveEnvApiKeyVarName("openrouter") ??
+    resolveApiKeyFromProfiles({ provider: "openrouter", store: authStore });
+
+  if (openRouterKey) {
+    providers.openrouter = {
+      ...buildOpenRouterProvider(),
+      apiKey: openRouterKey,
+    };
+  }
 
   const minimaxKey =
     resolveEnvApiKeyVarName("minimax") ??
