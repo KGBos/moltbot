@@ -143,6 +143,74 @@ export class TwilioProvider implements VoiceCallProvider {
     this.callStreamMap.delete(callSid);
   }
 
+  /**
+   * Make an authenticated request to the Twilio API.
+   */
+  private async apiRequest<T = unknown>(
+    endpoint: string,
+    params: Record<string, string | string[]>,
+    method: "GET" | "POST" | "DELETE" | "PUT" = "POST",
+    options?: { allowNotFound?: boolean },
+  ): Promise<T> {
+    return await twilioApiRequest<T>({
+      baseUrl: this.baseUrl,
+      accountSid: this.accountSid,
+      authToken: this.authToken,
+      endpoint,
+      body: params,
+      method,
+      allowNotFound: options?.allowNotFound,
+    });
+  }
+
+  /**
+   * Update the webhook URL for an incoming phone number.
+   * Finds the number SID by phone number first.
+   */
+  async updateIncomingPhoneNumberWebhook(params: {
+    phoneNumber: string;
+    webhookUrl: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Find the SID for the phone number
+      const numbers = await this.apiRequest<{
+        incoming_phone_numbers: Array<{ sid: string; phone_number: string }>;
+      }>(
+        "/IncomingPhoneNumbers.json",
+        {
+          PhoneNumber: params.phoneNumber,
+        },
+        "GET",
+      );
+
+      const number = numbers.incoming_phone_numbers.find(
+        (n) =>
+          n.phone_number === params.phoneNumber ||
+          n.phone_number === params.phoneNumber.replace(/^\+/, ""),
+      );
+
+      if (!number) {
+        return {
+          success: false,
+          error: `Phone number ${params.phoneNumber} not found in this Twilio account`,
+        };
+      }
+
+      // 2. Update the webhook URL
+      await this.apiRequest(`/IncomingPhoneNumbers/${number.sid}.json`, {
+        VoiceUrl: params.webhookUrl,
+        VoiceMethod: "POST",
+      });
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   isValidStreamToken(callSid: string, token?: string): boolean {
     const expected = this.streamAuthTokens.get(callSid);
     if (!expected || !token) {
@@ -165,24 +233,6 @@ export class TwilioProvider implements VoiceCallProvider {
     if (streamSid && this.mediaStreamHandler) {
       this.mediaStreamHandler.clearTtsQueue(streamSid);
     }
-  }
-
-  /**
-   * Make an authenticated request to the Twilio API.
-   */
-  private async apiRequest<T = unknown>(
-    endpoint: string,
-    params: Record<string, string | string[]>,
-    options?: { allowNotFound?: boolean },
-  ): Promise<T> {
-    return await twilioApiRequest<T>({
-      baseUrl: this.baseUrl,
-      accountSid: this.accountSid,
-      authToken: this.authToken,
-      endpoint,
-      body: params,
-      allowNotFound: options?.allowNotFound,
-    });
   }
 
   /**
@@ -429,10 +479,14 @@ export class TwilioProvider implements VoiceCallProvider {
    * @param streamUrl - WebSocket URL (wss://...) for the media stream
    */
   getStreamConnectXml(streamUrl: string): string {
+    const url = new URL(streamUrl);
+    const token = url.searchParams.get("token") || "";
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${escapeXml(streamUrl)}" />
+    <Stream url="${escapeXml(streamUrl)}">
+      <Parameter name="token" value="${escapeXml(token)}" />
+    </Stream>
   </Connect>
 </Response>`;
   }
@@ -488,11 +542,9 @@ export class TwilioProvider implements VoiceCallProvider {
     this.callWebhookUrls.delete(input.providerCallId);
     this.streamAuthTokens.delete(input.providerCallId);
 
-    await this.apiRequest(
-      `/Calls/${input.providerCallId}.json`,
-      { Status: "completed" },
-      { allowNotFound: true },
-    );
+    await this.apiRequest(`/Calls/${input.providerCallId}.json`, { Status: "completed" }, "POST", {
+      allowNotFound: true,
+    });
   }
 
   /**

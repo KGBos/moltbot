@@ -403,7 +403,7 @@ const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 // OpenRouter auto-router: automatically selects the best model for each prompt.
 // Use provider.max_price filter at request time to restrict to free models.
 const OPENROUTER_AUTO_MODEL: ModelDefinitionConfig = {
-  id: "openrouter/auto",
+  id: "auto",
   name: "OpenRouter Auto (Best Model Selection)",
   reasoning: false,
   input: ["text", "image"], // Auto-router can route to vision models too

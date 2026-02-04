@@ -145,6 +145,7 @@ export class MediaStreamHandler {
   ): Promise<StreamSession | null> {
     const streamSid = message.streamSid || "";
     const callSid = message.start?.callSid || "";
+    const effectiveToken = streamToken || message.start?.customParameters?.token;
 
     console.log(`[MediaStream] Stream started: ${streamSid} (call: ${callSid})`);
     if (!callSid) {
@@ -154,7 +155,7 @@ export class MediaStreamHandler {
     }
     if (
       this.config.shouldAcceptStream &&
-      !this.config.shouldAcceptStream({ callId: callSid, streamSid, token: streamToken })
+      !this.config.shouldAcceptStream({ callId: callSid, streamSid, token: effectiveToken })
     ) {
       console.warn(`[MediaStream] Rejecting stream for unknown call: ${callSid}`);
       ws.close(1008, "Unknown call");
@@ -393,6 +394,7 @@ interface TwilioMediaMessage {
     accountSid: string;
     callSid: string;
     tracks: string[];
+    customParameters?: Record<string, string>;
     mediaFormat: {
       encoding: string;
       sampleRate: number;

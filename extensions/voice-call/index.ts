@@ -16,18 +16,25 @@ const voiceCallConfigSchema = {
         ? (value as Record<string, unknown>)
         : {};
 
-    const twilio = raw.twilio as Record<string, unknown> | undefined;
+    // Core gateway nests plugin-specific config under "config" key.
+    // We must extract it to satisfy the strict VoiceCallConfigSchema.
+    const configBase = (raw.config && typeof raw.config === "object" ? raw.config : raw) as Record<
+      string,
+      unknown
+    >;
+
+    const twilio = configBase.twilio as Record<string, unknown> | undefined;
     const legacyFrom = typeof twilio?.from === "string" ? twilio.from : undefined;
 
     const enabled = typeof raw.enabled === "boolean" ? raw.enabled : true;
-    const providerRaw = raw.provider === "log" ? "mock" : raw.provider;
-    const provider = providerRaw ?? (enabled ? "mock" : undefined);
+    const providerRaw = configBase.provider === "log" ? "mock" : configBase.provider;
+    const provider = (providerRaw as any) ?? (enabled ? "mock" : undefined);
 
     return VoiceCallConfigSchema.parse({
-      ...raw,
+      ...configBase,
       enabled,
       provider,
-      fromNumber: raw.fromNumber ?? legacyFrom,
+      fromNumber: configBase.fromNumber ?? legacyFrom,
     });
   },
   uiHints: {
@@ -189,6 +196,7 @@ const voiceCallPlugin = {
     };
 
     api.registerGatewayMethod("voicecall.initiate", async ({ params, respond }) => {
+      api.logger.info(`[voice-call] voicecall.initiate called with: ${JSON.stringify(params)}`);
       try {
         const message = typeof params?.message === "string" ? params.message.trim() : "";
         if (!message) {
@@ -206,16 +214,16 @@ const voiceCallPlugin = {
         }
         const mode =
           params?.mode === "notify" || params?.mode === "conversation" ? params.mode : undefined;
+
+        api.logger.info(`[voice-call] initiating call to ${to} (mode: ${mode})`);
         const result = await rt.manager.initiateCall(to, undefined, {
           message,
           mode,
         });
-        if (!result.success) {
-          respond(false, { error: result.error || "initiate failed" });
-          return;
-        }
-        respond(true, { callId: result.callId, initiated: true });
+        api.logger.info(`[voice-call] initiateCall result: ${JSON.stringify(result)}`);
+        respond(result.success, result);
       } catch (err) {
+        api.logger.error(`[voice-call] initiateCall exception: ${err}`);
         sendError(respond, err);
       }
     });

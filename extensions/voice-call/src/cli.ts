@@ -276,4 +276,42 @@ export function registerVoiceCallCli(params: {
         );
       },
     );
+
+  root
+    .command("setup-twilio")
+    .description("Configure Twilio phone number with the correct webhook URL")
+    .option("--phone <number>", "Phone number to configure (defaults to config.fromNumber)")
+    .option("--url <url>", "Webhook URL to set (defaults to current publicUrl)")
+    .action(async (options: { phone?: string; url?: string }) => {
+      const rt = await ensureRuntime();
+      const phoneNumber = options.phone ?? rt.config.fromNumber;
+      const publicUrl = options.url ?? rt.config.publicUrl;
+
+      if (!phoneNumber) {
+        throw new Error("Phone number required (--phone or config.fromNumber)");
+      }
+      if (!publicUrl) {
+        throw new Error("Webhook URL required (--url or config.publicUrl)");
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(`Setting up Twilio number ${phoneNumber} with webhook ${publicUrl}...`);
+
+      const provider = rt.provider;
+      if (provider.name !== "twilio") {
+        throw new Error("Current provider is not Twilio");
+      }
+
+      const result = await (provider as any).updateIncomingPhoneNumberWebhook({
+        phoneNumber,
+        webhookUrl: publicUrl,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Setup failed");
+      }
+
+      // eslint-disable-next-line no-console
+      console.log("Success! Your Twilio number is now configured to point to OpenClaw.");
+    });
 }

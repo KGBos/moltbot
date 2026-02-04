@@ -3,30 +3,39 @@ export async function twilioApiRequest<T = unknown>(params: {
   accountSid: string;
   authToken: string;
   endpoint: string;
-  body: URLSearchParams | Record<string, string | string[]>;
+  body?: URLSearchParams | Record<string, string | string[]>;
+  method?: "GET" | "POST" | "DELETE" | "PUT";
   allowNotFound?: boolean;
 }): Promise<T> {
+  const method = params.method ?? "POST";
   const bodyParams =
     params.body instanceof URLSearchParams
       ? params.body
-      : Object.entries(params.body).reduce<URLSearchParams>((acc, [key, value]) => {
-          if (Array.isArray(value)) {
-            for (const entry of value) {
-              acc.append(key, entry);
+      : params.body
+        ? Object.entries(params.body).reduce<URLSearchParams>((acc, [key, value]) => {
+            if (Array.isArray(value)) {
+              for (const entry of value) {
+                acc.append(key, entry);
+              }
+            } else if (typeof value === "string") {
+              acc.append(key, value);
             }
-          } else if (typeof value === "string") {
-            acc.append(key, value);
-          }
-          return acc;
-        }, new URLSearchParams());
+            return acc;
+          }, new URLSearchParams())
+        : undefined;
 
-  const response = await fetch(`${params.baseUrl}${params.endpoint}`, {
-    method: "POST",
+  let url = `${params.baseUrl}${params.endpoint}`;
+  if (method === "GET" && bodyParams) {
+    url += `?${bodyParams.toString()}`;
+  }
+
+  const response = await fetch(url, {
+    method,
     headers: {
       Authorization: `Basic ${Buffer.from(`${params.accountSid}:${params.authToken}`).toString("base64")}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+      ...(method !== "GET" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
     },
-    body: bodyParams,
+    body: method !== "GET" ? bodyParams : undefined,
   });
 
   if (!response.ok) {
