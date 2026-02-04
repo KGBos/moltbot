@@ -5,7 +5,23 @@ set -euo pipefail
 if [[ -n $(git status --porcelain) ]]; then
     echo "==> Unstaged changes detected. Auto-committing..."
     git add .
-    git commit -m "chore: auto-commit before upstream sync"
+    
+    if [[ -n "${AUTO_COMMIT_MSG:-}" ]]; then
+        echo "==> Using provided commit message."
+        git commit -m "$AUTO_COMMIT_MSG"
+    else
+        # If interactive, prompt for message
+        if [ -t 0 ]; then
+            read -r -p "Enter commit message (default: chore: auto-commit before upstream sync): " user_msg
+            if [[ -n "$user_msg" ]]; then
+                git commit -m "$user_msg"
+            else
+                git commit -m "chore: auto-commit before upstream sync"
+            fi
+        else
+            git commit -m "chore: auto-commit before upstream sync"
+        fi
+    fi
 fi
 
 echo "==> Fetching upstream..."
