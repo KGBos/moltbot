@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { scanOpenRouterModels } from "./model-scan.js";
 
-function createFetchFixture(payload: unknown): typeof fetch {
+type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+function createFetchFixture(payload: unknown): FetchLike {
   return async () =>
     new Response(JSON.stringify(payload), {
       status: 200,
