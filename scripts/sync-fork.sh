@@ -27,18 +27,25 @@ fi
 echo "==> Fetching upstream..."
 git fetch upstream
 
+echo "==> Updating master (clean upstream mirror)..."
+git checkout master
+git reset --hard upstream/main
+git push origin master --force-with-lease
+
+echo "==> Updating my-patches (rebasing on master)..."
+git checkout my-patches
 echo "==> Current divergence:"
-git rev-list --left-right --count main...upstream/main
+git rev-list --left-right --count master...my-patches
 
 # Capture current HEAD before rebase for changelog generation
 OLD_HEAD=$(git rev-parse HEAD)
 
-echo "==> Rebasing onto upstream/main..."
-git rebase upstream/main
+echo "==> Rebasing onto master..."
+git rebase master
 
 # Push immediately after rebase so remote stays in sync even if builds fail later
-echo "==> Syncing with origin (Force Push)..."
-git push origin main --force-with-lease
+echo "==> Syncing my-patches with origin (Force Push)..."
+git push origin my-patches --force-with-lease
 echo "✅ Origin synced."
 
 # Check if anything actually changed
