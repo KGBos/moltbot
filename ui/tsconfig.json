@@ -14,8 +14,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+<<<<<<< HEAD
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
+=======
+    "experimentalDecorators": true
+>>>>>>> 03ce034c1 (fix: separate ui tsconfig to resolve rootDir errors)
   },
   "include": ["src"]
 }
