@@ -68,6 +68,22 @@ apps/ios/*.mobileprovision
 IDENTITY.md
 USER.md
 .tgz
+# -- OpenClaw Local Data --
+# Runtime state: Cron jobs (status updates frequently)
+.openclaw/cron/
+
+# Backups: created by manual edits or config migrations
+**/*.bak
+**/*.json.bak
+
+# Browser: Session data and cache
+.openclaw/browser/
+
+# Logs: Runtime logs
+.openclaw/logs/
+
+# Temp: Temporary files
+.openclaw/temp/
 
 # local tooling
 .serena/
