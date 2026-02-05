@@ -69,7 +69,7 @@ const BASE_RELOAD_RULES_TAIL: ReloadRule[] = [
   { prefix: "models", kind: "none" },
   { prefix: "agents", kind: "none" },
   { prefix: "tools", kind: "none" },
-  { prefix: "bindings", kind: "restart" },
+  { prefix: "bindings", kind: "none" },
   { prefix: "audio", kind: "none" },
   { prefix: "agent", kind: "none" },
   { prefix: "routing", kind: "none" },

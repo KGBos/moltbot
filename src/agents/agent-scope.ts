@@ -68,19 +68,7 @@ export function resolveDefaultAgentId(cfg: OpenClawConfig): string {
     defaultAgentWarned = true;
     console.warn("Multiple agents marked default=true; using the first entry as default.");
   }
-  // Prioritize explicitly marked defaults
-  if (defaults.length > 0) {
-    return normalizeAgentId(defaults[0].id || DEFAULT_AGENT_ID);
-  }
-
-  // Fallback: try to find 'main' in the list explicitly
-  const mainAgent = agents.find((a) => normalizeAgentId(a.id) === DEFAULT_AGENT_ID);
-  if (mainAgent) {
-    return DEFAULT_AGENT_ID;
-  }
-
-  // Final fallback: use the first agent in the list
-  const chosen = agents[0]?.id?.trim();
+  const chosen = (defaults[0] ?? agents[0])?.id?.trim();
   return normalizeAgentId(chosen || DEFAULT_AGENT_ID);
 }
 

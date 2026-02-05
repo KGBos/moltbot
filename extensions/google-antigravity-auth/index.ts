@@ -6,14 +6,14 @@ import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 // OAuth constants - decoded from pi-ai's base64 encoded values to stay in sync
 const decode = (s: string) => Buffer.from(s, "base64").toString();
 const CLIENT_ID = decode(
-  "NzY0MDg2MDUxODUwLTZxcjRwNmdwaTZobjUwNnB0OGVqdXE4M2RpMzQxaHVyLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t",
+  "MTA3MTAwNjA2MDU5MS10bWhzc2luMmgyMWxjcmUyMzV2dG9sb2poNGc0MDNlcC5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbQ==",
 );
-const CLIENT_SECRET = decode("ZC1GTDk1UTE5cTdNUW1GMVRCTGc1X2pu");
+const CLIENT_SECRET = decode("R09DU1BYLUs1OEZXUjQ4NkxkTEoxbUxCOHNYQzR6NnFEQWY=");
 const REDIRECT_URI = "http://localhost:51121/oauth-callback";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const DEFAULT_PROJECT_ID = "rising-fact-p41fc";
-const DEFAULT_MODEL = "google-antigravity/gemini-1.5-pro-002";
+const DEFAULT_MODEL = "google-antigravity/claude-opus-4-5-thinking";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/cloud-platform",
@@ -248,10 +248,10 @@ async function fetchProjectId(accessToken: string): Promise<string> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
-    "User-Agent": "google-cloud-sdk vscode_cloudshelleditor/3.0.0",
-    "X-Goog-Api-Client": "gl-node/22.17.0",
+    "User-Agent": "google-api-nodejs-client/9.15.1",
+    "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
     "Client-Metadata": JSON.stringify({
-      ideType: "VSCODE",
+      ideType: "IDE_UNSPECIFIED",
       platform: "PLATFORM_UNSPECIFIED",
       pluginType: "GEMINI",
     }),
@@ -416,7 +416,7 @@ const antigravityPlugin = {
                 progress: spin,
               });
 
-              const profileId = `google-antigravity:${result.email ?? "default"}-v2`;
+              const profileId = `google-antigravity:${result.email ?? "default"}`;
               return {
                 profiles: [
                   {

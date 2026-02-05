@@ -14,7 +14,7 @@ final class PeekabooBridgeHostCoordinator {
     private var host: PeekabooBridgeHost?
     private var services: OpenClawPeekabooBridgeServices?
     private static var openclawSocketPath: String {
-        let fileManager = FileManager()
+        let fileManager = FileManager.default
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
         let directory = base.appendingPathComponent("OpenClaw", isDirectory: true)

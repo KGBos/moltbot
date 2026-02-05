@@ -1,8 +1,8 @@
 ---
-description: Update OpenClaw from upstream when branch has diverged (ahead/behind)
+description: Update Clawdbot from upstream when branch has diverged (ahead/behind)
 ---
 
-# OpenClaw Upstream Sync Workflow
+# Clawdbot Upstream Sync Workflow
 
 Use this workflow when your fork has diverged from upstream (e.g., "18 commits ahead, 29 commits behind").
 
@@ -14,8 +14,6 @@ git fetch upstream && git rev-list --left-right --count main...upstream/main
 
 # Full sync (rebase preferred)
 git fetch upstream && git rebase upstream/main && pnpm install && pnpm build && ./scripts/restart-mac.sh
-# Or simply run:
-./scripts/sync-fork.sh
 
 # Check for Swift 6.2 issues after sync
 grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift"
@@ -115,7 +113,7 @@ pnpm build
 pnpm ui:build
 
 # Run diagnostics
-pnpm run openclaw doctor
+pnpm clawdbot doctor
 ```
 
 ---
@@ -154,13 +152,13 @@ After rebuilding the macOS app, always verify it works correctly:
 
 ```bash
 # Check gateway health
-pnpm run openclaw health
+pnpm clawdbot health
 
 # Verify no zombie processes
 ps aux | grep -E "(clawdbot|gateway)" | grep -v grep
 
 # Test agent functionality by sending a verification message
-pnpm run openclaw agent --message "Verification: macOS app rebuild successful - agent is responding." --session-id YOUR_TELEGRAM_SESSION_ID
+pnpm clawdbot agent --message "Verification: macOS app rebuild successful - agent is responding." --session-id YOUR_TELEGRAM_SESSION_ID
 
 # Confirm the message was received on Telegram
 # (Check your Telegram chat with the bot)
@@ -247,7 +245,7 @@ grep -r "openrouter\|OPENROUTER" src/ --include="*.ts" --include="*.js"
 
 ```bash
 # Verify everything works
-pnpm run openclaw health
+pnpm clawdbot health
 pnpm test
 
 # Push (force required after rebase)
@@ -335,18 +333,11 @@ pnpm canvas:a2ui:bundle
 
 ## Automation Script
 
-Save as `scripts/sync-fork.sh`:
+Save as `scripts/sync-upstream.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Check for local changes and auto-commit
-if [[ -n $(git status --porcelain) ]]; then
-    echo "==> Unstaged changes detected. Auto-committing..."
-    git add .
-    git commit -m "chore: auto-commit before upstream sync"
-fi
 
 echo "==> Fetching upstream..."
 git fetch upstream
@@ -365,13 +356,13 @@ pnpm build
 pnpm ui:build
 
 echo "==> Running doctor..."
-# echo "Skipping interactive doctor. Run 'pnpm run openclaw -- doctor' manually if needed."
+pnpm clawdbot doctor
 
 echo "==> Rebuilding macOS app..."
 ./scripts/restart-mac.sh
 
 echo "==> Verifying gateway health..."
-pnpm run openclaw -- health
+pnpm clawdbot health
 
 echo "==> Checking for Swift 6.2 compatibility issues..."
 if grep -r "FileManager\.default\|Thread\.isMainThread" src/ apps/ --include="*.swift" --quiet; then
@@ -382,11 +373,8 @@ else
 fi
 
 echo "==> Testing agent functionality..."
-# Note: Update session ID or run manually
-# pnpm run openclaw -- agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed"
+# Note: Update YOUR_TELEGRAM_SESSION_ID with actual session ID
+pnpm clawdbot agent --message "Verification: Upstream sync and macOS rebuild completed successfully." --session-id YOUR_TELEGRAM_SESSION_ID || echo "Warning: Agent test failed - check Telegram for verification message"
 
-echo "==> Done! Check Telegram for verification message."
-echo ""
-echo "IMPORTANT: Please review FORK.md to ensure all customizations are still valid."
-echo "If you have just rebased, run 'git push --force-with-lease' to update your remote."
+echo "==> Done! Check Telegram for verification message, then run 'git push --force-with-lease' when ready."
 ```

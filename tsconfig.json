@@ -13,7 +13,7 @@
     "noEmitOnError": true,
     "outDir": "dist",
     "resolveJsonModule": true,
-    "rootDir": ".",
+    "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
     "target": "es2023",

@@ -13,8 +13,6 @@ const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const DEFAULT_TIMEOUT_MS = 12_000;
 const DEFAULT_CONCURRENCY = 3;
 
-type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
 const BASE_IMAGE_PNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X3mIAAAAASUVORK5CYII=";
 
@@ -74,7 +72,7 @@ export type ModelScanResult = {
 
 export type OpenRouterScanOptions = {
   apiKey?: string;
-  fetchImpl?: FetchLike;
+  fetchImpl?: typeof fetch;
   timeoutMs?: number;
   concurrency?: number;
   minParamB?: number;
@@ -195,7 +193,7 @@ async function withTimeout<T>(
   }
 }
 
-async function fetchOpenRouterModels(fetchImpl: FetchLike): Promise<OpenRouterModelMeta[]> {
+async function fetchOpenRouterModels(fetchImpl: typeof fetch): Promise<OpenRouterModelMeta[]> {
   const res = await fetchImpl(OPENROUTER_MODELS_URL, {
     headers: { Accept: "application/json" },
   });

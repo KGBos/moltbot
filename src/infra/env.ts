@@ -1,4 +1,3 @@
-import path from "node:path";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 
@@ -50,22 +49,4 @@ export function isTruthyEnvValue(value?: string): boolean {
 
 export function normalizeEnv(): void {
   normalizeZaiEnv();
-  if (process.platform === "darwin") {
-    const paths = (process.env.PATH ?? "").split(path.delimiter);
-    const required = ["/usr/sbin", "/sbin"];
-
-    // Add project scripts directory to PATH to pick up 'timeout' polyfill
-    // Assuming we are running from project root or src is parallel to scripts
-    const scriptsDir = path.resolve(process.cwd(), "scripts");
-    if (!paths.includes(scriptsDir)) {
-      paths.unshift(scriptsDir);
-    }
-
-    for (const req of required) {
-      if (!paths.includes(req)) {
-        paths.push(req);
-      }
-    }
-    process.env.PATH = paths.join(path.delimiter);
-  }
 }
